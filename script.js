@@ -1,126 +1,117 @@
 // 1. Загрузка данных
-
 let cats = JSON.parse(localStorage.getItem('cats')) || [];
-console.log("Загруженные кошки:", cats);
 
-// 2. Функция удаления
-
-function deleteCat (index) {
-
-    console.log("Удаляем кошку под номером:", index);
-
-    cats.splice(index, 1); // Метод splice удаляет 1 элемент по указанному индексу, Index - это позиция элемента в массиве - начинается с 0. Функция означает - Найди элемент под номером index и удали ровно 1 штуку
-
-    localStorage.setItem('cats', JSON.stringify(cats)); // Перезаписываем обновленный список в память браузера
-
-    renderCats();
-}
-
-// 3. Функция отрисовки
+// 2. Функция отрисовки
 function renderCats() {
     const list = document.getElementById('catList');
-    if (!list) return; // Проверка, что список вообще есть в HTML
-    list.innerHTML = ''; // Очищаем список перед перерисовкой
+    if (!list) return; 
+    list.innerHTML = ''; 
 
-    // Берем текущую дату, чтобы сравнивать
+    // СОРТИРОВКА: по месяцам (от января до декабря)
+    cats.sort((a, b) => {
+        const dateA = new Date(a.date);
+        const dateB = new Date(b.date);
+        return dateA.getMonth() - dateB.getMonth() || dateA.getDate() - dateB.getDate();
+    });
+
     const today = new Date();
 
     cats.forEach((cat, index) => {
-    const lastVac = new Date (cat.date);  // Превращаем дату вакцинации (строку) в объект даты JS
-   
-    // Считаем дату следующей прививки (добавляем 1 год)
-    const nextVac = new Date (lastVac);     
-    nextVac.setFullYear(nextVac.getFullYear() +1);
-    
-    // Проверяем: если до следующей прививки осталось меньше 30 дней или она прошла
-    const isUrgent = (nextVac - today) < (30 * 24 * 60 * 60 * 1000);
-    const color = isUrgent ? '#ff4d4d' : '#333'; // Красный, если пора
-    
-    
-        list.innerHTML += `
-        <div class="cat-item" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-        <div>
-        <span>${index + 1}. <b>${cat.name}</b> — 📅 ${cat.date}</span>
+        const lastVac = new Date(cat.date);
+        const nextVac = new Date(lastVac);     
+        nextVac.setFullYear(nextVac.getFullYear() + 1);
+        
+        const isUrgent = (nextVac - today) < (30 * 24 * 60 * 60 * 1000);
+        const color = isUrgent ? '#ff4d4d' : '#2ecc71';
 
-          <div style="color: ${color}; font-size: 0.8em; margin-top: 4px;">
-             <b>${nextVac.toLocaleDateString()} </b>
-                
-                
+        const catItem = document.createElement('div');
+        catItem.className = 'cat-item';
+        // Обернули в шаблонную строку аккуратно:
+        catItem.innerHTML = `
+            <div style="flex-grow: 1;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <b>${cat.name}</b>
+                    <input type="date" value="${cat.date}" 
+                           onchange="updateCatDate(${index}, this.value)"
+                           style="border: 1px solid #ddd; border-radius: 4px; padding: 2px;">
+                </div>
+                <div style="color: ${color}; font-size: 0.85em; margin-top: 5px;">
+                    Следующая: <b>${nextVac.toLocaleDateString()}</b>
+                </div>
             </div>
-          </div>
-          <button onclick="deleteCat(${index})" style="background:none; border:none; cursor:pointer; font-size: 16px;">❌</button>
-          </div>
+            <details style="margin-left: 10px; cursor: pointer;">
+                <summary style="list-style: none; color: #ccc;">⋮</summary>
+                <button onclick="deleteCat(${index})" 
+                        style="background: #ff4d4d; color: white; border: none; border-radius: 4px; padding: 5px; margin-top: 5px;">
+                    Удалить
+                </button>
+            </details>
         `;
+        list.appendChild(catItem);
     });
+
+    localStorage.setItem('cats', JSON.stringify(cats));
 }
 
+// 3. Обновление даты (без удаления кота)
+function updateCatDate(index, newDate) {
+    cats[index].date = newDate;
+    renderCats(); // Перерисует и сразу отсортирует по месяцам
+}
 
-// 4. Функция добавления
+// 4. Добавление нового кота
 function addCat() {
     const nameInput = document.getElementById('catName');
     const dateInput = document.getElementById('vacDate');
 
     if (nameInput.value && dateInput.value) {
-        const newCat = {
+        cats.push({
             name: nameInput.value, 
             date: dateInput.value
-        };
-
-        cats.push(newCat); // Добавляем в массив
-        localStorage.setItem('cats', JSON.stringify(cats)); // Сохраняем
-
-        console.log("Добавлена кошка:", newCat);
-
-        nameInput.value = ''; // Очищаем поля
+        });
+        nameInput.value = ''; 
         dateInput.value = '';
-
-        renderCats(); // Обновляем экран
-
+        renderCats();
     } else {
         alert("Заполни имя и дату!");
     }
-
 }
 
-// Запускаем отрисовку при открытии
-renderCats();
+// 5. Удаление (с подтверждением)
+function deleteCat(index) {
+    if (confirm(`Удалить котика ${cats[index].name}?`)) {
+        cats.splice(index, 1);
+        renderCats();
+    }
+}
 
-
-// Уведомления 1. Функция, которая спрашивает разрешение у пользователя
-
+// 6. Уведомления
 function askPermission() {
-    
     Notification.requestPermission().then(permission => {
         if (permission === "granted") {
-            alert("Ура! Уведомления включены.");
-            checkVaccinations(); // Сразу проверяем, не пора ли кому на прививку
-            document.getElementById('notifyBtn').style.display = 'none'; // Прячем кнопку уведомлений
+            alert("Уведомления включены!");
+            checkVaccinations();
         }
     });
 }
 
-// 2. Функция, которая проверяет даты и шлет уведомление
 function checkVaccinations() {
     const today = new Date();
-
     cats.forEach(cat => {
         const lastVac = new Date(cat.date);
         const nextVac = new Date(lastVac);
-        nextVac.setFullYear(nextVac.getFullYear() +1);
-
-        // Если до прививки меньше 7 дней — шлем пуш!
+        nextVac.setFullYear(nextVac.getFullYear() + 1);
         const diffDays = (nextVac - today) / (1000 * 60 * 60 * 24);
         if (diffDays > 0 && diffDays <= 7) {
             new Notification("Пора вакцинировать!", {
-                body: `У кошки ${cat.name} скоро вакцинация: ${nextVac.toLocaleDateString()}`,
-                icon: "https://cdn-icons-png.flaticon.com" // Просто иконка шприца
+                body: `У кошки ${cat.name} скоро вакцинация: ${nextVac.toLocaleDateString()}`
             });
         }
     });
 }
 
-
-// 3. Запускаем проверку при каждом открытии приложения
-if (Notification.permission === "granded") {
+// Запуск при старте
+renderCats();
+if (Notification.permission === "granted") {
     checkVaccinations();
 }

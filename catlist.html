@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вакцинация кошек</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="container">
+        <h1>🐾 Вакцинация 2025-2026</h1>
+
+        <div id="catList">
+            <!-- Здесь JS будет рисовать список кошек -->
+             <button onclick="askPermission()" id="notifyBtn" style="margin-bottom: 20px; background: #2196f3;">🔔 Включить напоминания</button>
+        </div>
+
+        <div class="add-form">
+            <input type="text" id="catName" placeholder="Имя кошки">
+            <input type="date" id="vacDate">
+            <button onclick="addCat()">Добавить</button>
+        </div>
+
+    </div>
+    
+
+    <script src="script.js"></script>
+</body>
+</html>

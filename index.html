@@ -5,16 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Вакцинация кошек</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <script src="https://unpkg.com"></script>
 </head>
 <body>
 
     <div class="container">
         <h1>🐾 Вакцинация 2025-2026</h1>
 
-        <div id="catList">
-            <!-- Здесь JS будет рисовать список кошек -->
-             <button onclick="askPermission()" id="notifyBtn" style="margin-bottom: 20px; background: #2196f3;">🔔 Включить напоминания</button>
-        </div>
+        <!-- Кнопка теперь ВНЕ списка и не будет удаляться при обновлении данных -->
+        <button onclick="askPermission()" id="notifyBtn" style="margin-bottom: 20px; background: #2196f3; color: white; border: none; border-radius: 4px; padding: 8px 12px; cursor: pointer;">🔔 Включить напоминания</button>
+
+        <!-- Чистый список, в который JS будет добавлять котиков -->
+        <div id="catList"></div>
 
         <div class="add-form">
             <input type="text" id="catName" placeholder="Имя кошки">
@@ -24,7 +27,6 @@
 
     </div>
     
-
     <script src="script.js"></script>
 </body>
 </html>

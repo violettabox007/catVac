@@ -1,7 +1,23 @@
-// 1. Загрузка данных
-let cats = JSON.parse(localStorage.getItem('cats')) || [];
+// 1. Создаем базу данных прямо в памяти телефона (IndexedDB)
+const db = new Dexie("CatVaccinesDB");
+
+//: Настраиваем таблицу "cats", где главным ключом для поиска будет id
+db.version(1).stores ({
+    cats: 'id, name, date'
+});
+
 
 // 2. Функция отрисовки
+// НОВОЕ: Добавили async, так как функция будет ждать ответа от базы данных
+async function renderCats() {
+    const list = document.getElementById('catList');
+    if(!list) return;
+    list.innerHTML = '';
+
+    // НОВОЕ: await говорит подождать, пока база данных достанет всех котиков и превратит их в массив
+    let cats = await db.cats.toArray();
+}
+
 function renderCats() {
     const list = document.getElementById('catList');
     if (!list) return; 
@@ -16,7 +32,7 @@ function renderCats() {
 
     const today = new Date();
 
-    cats.forEach((cat, index) => {
+    cats.forEach((cat) => {
         const lastVac = new Date(cat.date);
         const nextVac = new Date(lastVac);     
         nextVac.setFullYear(nextVac.getFullYear() + 1);
@@ -26,13 +42,14 @@ function renderCats() {
 
         const catItem = document.createElement('div');
         catItem.className = 'cat-item';
-        // Обернули в шаблонную строку аккуратно:
+        
+        // ВМЕСТО index МЫ ПЕРЕДАЕМ cat.id
         catItem.innerHTML = `
             <div style="flex-grow: 1;">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <b>${cat.name}</b>
                     <input type="date" value="${cat.date}" 
-                           onchange="updateCatDate(${index}, this.value)"
+                           onchange="updateCatDate('${cat.id}', this.value)"
                            style="border: 1px solid #ddd; border-radius: 4px; padding: 2px;">
                 </div>
                 <div style="color: ${color}; font-size: 0.85em; margin-top: 5px;">
@@ -41,7 +58,7 @@ function renderCats() {
             </div>
             <details style="margin-left: 10px; cursor: pointer;">
                 <summary style="list-style: none; color: #ccc;">⋮</summary>
-                <button onclick="deleteCat(${index})" 
+                <button onclick="deleteCat('${cat.id}')" 
                         style="background: #ff4d4d; color: white; border: none; border-radius: 4px; padding: 5px; margin-top: 5px;">
                     Удалить
                 </button>
@@ -50,22 +67,27 @@ function renderCats() {
         list.appendChild(catItem);
     });
 
-    localStorage.setItem('cats', JSON.stringify(cats));
+   
 }
 
 // 3. Обновление даты (без удаления кота)
-function updateCatDate(index, newDate) {
-    cats[index].date = newDate;
-    renderCats(); // Перерисует и сразу отсортирует по месяцам
+async function updateCatDate (id, newDate) {
+    await db.cats.update (id, {date: newDate});
+    renderCats();
 }
 
+
+
 // 4. Добавление нового кота
-function addCat() {
+async function addCat () {
     const nameInput = document.getElementById('catName');
-    const dateInput = document.getElementById('vacDate');
+    const dateInput = document.getElementById ('vacDate');
+
+
 
     if (nameInput.value && dateInput.value) {
-        cats.push({
+        await db.cats.add({
+            id: Date.now().toString(), // Генерируем уникальный ID для каждого кота
             name: nameInput.value, 
             date: dateInput.value
         });
@@ -78,9 +100,12 @@ function addCat() {
 }
 
 // 5. Удаление (с подтверждением)
-function deleteCat(index) {
-    if (confirm(`Удалить котика ${cats[index].name}?`)) {
-        cats.splice(index, 1);
+// НОВОЕ: Добавили async, так как функция будет удалять данные из базы
+async function deleteCat(id) {
+    const cat = await db.cats.get(id);
+    if (cat && confirm(`Удалить котика ${cat.name}?`)) {
+        cats = cats.filter(c => c.id !== id); // Оставляем всех, кроме кота с этим id
+        await db.cats.delete(id);
         renderCats();
     }
 }
@@ -95,8 +120,12 @@ function askPermission() {
     });
 }
 
-function checkVaccinations() {
+// НОВОЕ: Добавили async, так как функция читает список котиков из базы
+    async function checkVaccinations() {
     const today = new Date();
+
+    const cats = await db.cats.toArray();
+
     cats.forEach(cat => {
         const lastVac = new Date(cat.date);
         const nextVac = new Date(lastVac);
